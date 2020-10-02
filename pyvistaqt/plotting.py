@@ -59,6 +59,9 @@ from PyQt5.QtWidgets import (  # pylint: disable=unused-import
     QMenuBar,
     QToolBar,
     QVBoxLayout,
+    QMainWindow,
+    QLayout,
+
 )
 from pyvista.plotting.plotting import BasePlotter
 from pyvista.plotting.theme import rcParams
@@ -548,6 +551,9 @@ class BackgroundPlotter(QtInteractor):
         menu_bar: bool = True,
         editor: bool = True,
         update_app_icon: bool = False,
+        app_window: Optional[QMainWindow] = None,
+        frame: Optional[QFrame] = None,
+        layout: Optional[QLayout] = None,
         **kwargs: Any
     ) -> None:
         # pylint: disable=too-many-branches
@@ -600,18 +606,28 @@ class BackgroundPlotter(QtInteractor):
                 app = QApplication(["PyVista"])
 
         self.app = app
-        self.app_window = MainWindow()
-        self.app_window.setWindowTitle(kwargs.get("title", rcParams["title"]))
 
-        self.frame = QFrame(parent=self.app_window)
-        self.frame.setFrameStyle(QFrame.NoFrame)
-        self.app_window.setCentralWidget(self.frame)
-        vlayout = QVBoxLayout()
-        self.frame.setLayout(vlayout)
+        if app_window is None:
+            app_window = MainWindow()
+            app_window.setWindowTitle(kwargs.get("title", rcParams["title"]))
+        self.app_window = app_window
+
+        if layout is None:
+            layout = QVBoxLayout()
+
+        if frame is None:
+            frame = QFrame(parent=self.app_window)
+            frame.setFrameStyle(QFrame.NoFrame)
+            app_window.setCentralWidget(frame)
+            frame.setLayout(layout)
+
+        self.frame = frame
+
         super(BackgroundPlotter, self).__init__(
             parent=self.frame, off_screen=off_screen, **kwargs
         )
-        vlayout.addWidget(self)
+        layout.addWidget(self)
+
         self.app_window.grabGesture(QtCore.Qt.PinchGesture)
         self.app_window.signal_gesture.connect(self.gesture_event)
         self.app_window.signal_close.connect(self._close)
